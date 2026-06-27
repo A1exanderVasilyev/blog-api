@@ -6,22 +6,22 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePostRequest;
 use App\Http\Requests\UpdatePostRequest;
 use App\Models\Post;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class PostController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request): JsonResponse
     {
-        $request = request();
-        $sortBy = $request->input('sort_by', 'created_at');
-        $sortOrder = $request->input('sort_order', 'desc');
-        $limit = $request->input('limit', 10);
-        $offset = $request->input('offset', 0);
-
-        $query = Post::with('user')->orderBy($sortBy, $sortOrder);
-        $posts = $query->skip($offset)->take($limit)->get();
+        $params = $this->getPaginationParams($request);
+        $posts = Post::with('user')
+            ->orderBy($params['sortBy'], $params['sortOrder'])
+            ->skip($params['offset'])
+            ->take($params['limit'])
+            ->get();
 
         return response()->json([
             'data' => $posts,
@@ -31,15 +31,25 @@ class PostController extends Controller
     /**
      * Display posts of current user
      */
-    public function userPosts()
+    public function userPosts(Request $request): JsonResponse
     {
+        $params = $this->getPaginationParams($request);
+        $user = $request->user();
+        $posts = Post::where('user_id', $user->id)
+            ->orderBy($params['sortBy'], $params['sortOrder'])
+            ->skip($params['offset'])
+            ->take($params['limit'])
+            ->get();
 
+        return response()->json([
+            'data' => $posts,
+        ]);
     }
 
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StorePostRequest $request)
+    public function store(StorePostRequest $request): JsonResponse
     {
         $validated = $request->validated();
         $user = $request->user();
@@ -59,12 +69,6 @@ class PostController extends Controller
      */
     public function show(Post $post)
     {
-        if ($post->user_id !== request()->user()->id) {
-            return response([
-                'message' => 'Forbidden'
-            ], 403);
-        }
-
         return $post;
     }
 
@@ -82,5 +86,25 @@ class PostController extends Controller
     public function destroy(Post $post)
     {
         //
+    }
+
+    private function getPaginationParams(Request $request): array
+    {
+        $limit = min($request->input('limit', 10), 100);
+        $sortOrder = in_array($request->input('sort_order'), ['asc', 'desc'])
+            ? $request->input('sort_order')
+            : 'desc';
+        $allowedSorts = ['created_at', 'title'];
+        $sortByInput = $request->input('sort_by');
+        $sortBy = in_array($sortByInput, $allowedSorts)
+            ? $sortByInput
+            : 'created_at';
+        $offset = max($request->input('offset', 0), 0);
+        return [
+            'limit' => $limit,
+            'offset' => $offset,
+            'sortBy' => $sortBy,
+            'sortOrder' => $sortOrder
+        ];
     }
 }

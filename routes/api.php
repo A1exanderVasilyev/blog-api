@@ -15,6 +15,7 @@ Route::prefix('v1')->group(function () {
 });
 
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
+    Route::get('posts/me', [PostController::class, 'userPosts']);
     Route::apiResource('posts', PostController::class);
     Route::get('logout', [AuthController::class, 'login']);
 });
