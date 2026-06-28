@@ -75,17 +75,44 @@ class PostController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(UpdatePostRequest $request, Post $post)
+    public function update(UpdatePostRequest $request, Post $post): JsonResponse
     {
-        //
+        if ($request->user()->id !== $post->user_id)
+        {
+            return response()->json([
+                'message' => 'Forbidden'
+            ], 403);
+        }
+
+        $validated = $request->validated();
+
+        $post->update([
+            'title' => $validated['title'],
+            'text' => $validated['text'],
+        ]);
+
+        return response()->json([
+            'data' => $post->fresh('user')
+        ]);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Post $post)
+    public function destroy(Request $request, Post $post): JsonResponse
     {
-        //
+        if ($request->user()->id !== $post->user_id)
+        {
+            return response()->json([
+                'message' => 'Forbidden'
+            ], 403);
+        }
+
+        $post->delete();
+
+        return response()->json([
+            'message' => 'Post deleted'
+        ]);
     }
 
     private function getPaginationParams(Request $request): array
