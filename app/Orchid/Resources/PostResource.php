@@ -25,6 +25,9 @@ class PostResource extends Resource
     public function fields(): array
     {
         return [
+            Input::make('user_id')
+                ->title('Author id')
+                ->required(),
             Input::make('title')
                 ->title('Title')
                 ->required(),
