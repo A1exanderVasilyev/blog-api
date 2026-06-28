@@ -111,4 +111,14 @@ class PostResource extends Resource
     {
         return ['user'];
     }
+
+    /**
+     * Get the permission key for the resource.
+     *
+     * @return string|null
+     */
+    public static function permission(): ?string
+    {
+        return 'platform.posts.manage';
+    }
 }
